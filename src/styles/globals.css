@@ -1,0 +1,327 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+    --color-main: #00a098;
+    --color-secondary: #1f4360;
+    --color-tertiary: #00a09a;
+    --color-quaternary: #00a09a;
+    --color-accent: #a7288a;
+    --color-background: #ffffff;
+    --color-foreground: #000000;
+    --font-sans:
+        ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji',
+        'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-mono:
+        ui-monospace, SFMono-Regular, 'SF Mono', Consolas, 'Liberation Mono',
+        Menlo, monospace;
+    --color-sidebar-ring: #b3b3b3;
+    --color-sidebar-border: #e6e6e6;
+    --color-sidebar-accent-foreground: #333333;
+    --color-sidebar-accent: #f7f7f7;
+    --color-sidebar-primary-foreground: #ffffff;
+    --color-sidebar-primary: #333333;
+    --color-sidebar-foreground: #000000;
+    --color-sidebar: #ffffff;
+    --color-chart-5: #c4a484;
+    --color-chart-4: #d4b483;
+    --color-chart-3: #6583a3;
+    --color-chart-2: #1f4360;
+    --color-chart-1: #a5a5a5;
+    --color-rating: #3b82f6;
+    --color-ring: #b3b3b3;
+    --color-input: #e6e6e6;
+    --color-border: #e6e6e6;
+    --color-destructive: #dc2626;
+    --color-accent-foreground: #333333;
+    --color-muted-foreground: #8e8e8e;
+    --color-muted: #f7f7f7;
+    --color-secondary-foreground: #333333;
+    --color-secondary: #f7f7f7;
+    --color-primary-foreground: #ffffff;
+    --color-primary: #333333;
+    --color-popover-foreground: #000000;
+    --color-popover: #ffffff;
+    --color-card-foreground: #000000;
+    --color-card: #ffffff;
+    --radius-sm: 0.225rem;
+    --radius-md: 0.425rem;
+    --radius-lg: 0.625rem;
+    --radius-xl: 1.025rem;
+}
+
+@layer base {
+    * {
+        @apply border-border outline-ring/50;
+    }
+    body {
+        @apply bg-background text-foreground;
+    }
+    :root {
+        --chart-1: oklch(0.6368 0.1099 190.07);
+        --chart-2: oklch(0.6 0.118 184.704);
+        --chart-3: oklch(0.398 0.07 227.392);
+        --chart-4: oklch(0.828 0.189 84.429);
+        --chart-5: oklch(0.769 0.188 70.08);
+    }
+}
+
+/* Light theme styles */
+.bg-background {
+    background-color: #ffffff;
+}
+.text-foreground {
+    color: #000000;
+}
+.bg-card {
+    background-color: #ffffff;
+}
+.text-card-foreground {
+    color: #000000;
+}
+.bg-popover {
+    background-color: #ffffff;
+}
+.text-popover-foreground {
+    color: #000000;
+}
+.bg-primary {
+    background-color: #333333;
+}
+.text-primary-foreground {
+    color: #ffffff;
+}
+.bg-secondary {
+    background-color: #f7f7f7;
+}
+.text-secondary-foreground {
+    color: #333333;
+}
+.bg-muted {
+    background-color: #f7f7f7;
+}
+.text-muted-foreground {
+    color: #8e8e8e;
+}
+.bg-main {
+    background-color: #00a09a;
+}
+.bg-secondary {
+    background-color: #1f4360;
+}
+.bg-tertiary {
+    background-color: #507f70;
+}
+.bg-quaternary {
+    background-color: #f0faf9;
+}
+.bg-accent {
+    background-color: #a7288a;
+}
+.text-accent-foreground {
+    color: #333333;
+}
+.bg-destructive {
+    background-color: #dc2626;
+}
+.border-border {
+    border-color: #e6e6e6;
+}
+.bg-input {
+    background-color: #e6e6e6;
+}
+.outline-ring {
+    outline-color: #b3b3b3;
+}
+
+/* Dark theme styles */
+.dark .bg-background {
+    background-color: #000000;
+}
+.dark .text-foreground {
+    color: #ffffff;
+}
+.dark .bg-card {
+    background-color: #333333;
+}
+.dark .text-card-foreground {
+    color: #ffffff;
+}
+.dark .bg-popover {
+    background-color: #333333;
+}
+.dark .text-popover-foreground {
+    color: #ffffff;
+}
+.dark .bg-primary {
+    background-color: #e6e6e6;
+}
+.dark .text-primary-foreground {
+    color: #333333;
+}
+.dark .bg-secondary {
+    background-color: #444444;
+}
+.dark .text-secondary-foreground {
+    color: #ffffff;
+}
+.dark .bg-muted {
+    background-color: #444444;
+}
+.dark .text-muted-foreground {
+    color: #b3b3b3;
+}
+.dark .bg-accent {
+    background-color: #a7288a;
+}
+.dark .text-accent-foreground {
+    color: #ffffff;
+}
+.dark .bg-destructive {
+    background-color: #b91c1c;
+}
+.dark .border-border {
+    border-color: rgba(255, 255, 255, 0.1);
+}
+.dark .bg-input {
+    background-color: rgba(255, 255, 255, 0.15);
+}
+.dark .outline-ring {
+    outline-color: #8e8e8e;
+}
+
+:root {
+    --sidebar: hsl(0 0% 98%);
+    --sidebar-foreground: hsl(240 5.3% 26.1%);
+    --sidebar-primary: hsl(240 5.9% 10%);
+    --sidebar-primary-foreground: hsl(0 0% 98%);
+    --sidebar-accent: hsl(240 4.8% 95.9%);
+    --sidebar-accent-foreground: hsl(240 5.9% 10%);
+    --sidebar-border: hsl(220 13% 91%);
+    --sidebar-ring: hsl(217.2 91.2% 59.8%);
+}
+
+.dark {
+    --sidebar: hsl(240 5.9% 10%);
+    --sidebar-foreground: hsl(240 4.8% 95.9%);
+    --sidebar-primary: hsl(224.3 76.3% 48%);
+    --sidebar-primary-foreground: hsl(0 0% 100%);
+    --sidebar-accent: hsl(240 3.7% 15.9%);
+    --sidebar-accent-foreground: hsl(240 4.8% 95.9%);
+    --sidebar-border: hsl(240 3.7% 15.9%);
+    --sidebar-ring: hsl(217.2 91.2% 59.8%);
+}
+
+/* Success toast - accent colors (bg 20%, text accent) */
+[data-rich-colors='true'][data-sonner-toast][data-type='success'] {
+    background: color-mix(
+        in srgb,
+        var(--color-accent) 10%,
+        transparent
+    ) !important;
+    color: var(--color-accent) !important;
+    border-color: var(--color-accent) !important;
+}
+
+[data-rich-colors='true'][data-sonner-toast][data-type='success']
+    [data-close-button] {
+    background: transparent !important;
+    border-color: var(--color-accent) !important;
+    color: var(--color-accent) !important;
+}
+
+/* Mobile Toast Styles */
+@media (max-width: 768px) {
+    .toaster {
+        --viewport-padding: 16px;
+        --toast-max-width: 90vw;
+        --toast-min-width: 280px;
+    }
+
+    /* Ensure toasts are properly positioned on mobile */
+    [data-sonner-toaster][data-position='top-center'] {
+        top: env(safe-area-inset-top, 16px);
+        left: 50%;
+        transform: translateX(-50%);
+    }
+
+    /* Mobile-friendly toast sizing */
+    [data-sonner-toast] {
+        max-width: 90vw;
+        min-width: 280px;
+        font-size: 14px;
+        padding: 12px 16px;
+        border-radius: 8px;
+        margin-bottom: 8px;
+    }
+
+    /* Mobile-friendly close button */
+    [data-sonner-toast] [data-close-button] {
+        width: 20px;
+        height: 20px;
+        min-width: 20px;
+        min-height: 20px;
+    }
+}
+
+@layer utilities {
+    /* Modern autofill override for latest browsers */
+    input:-webkit-autofill,
+    input:-webkit-autofill:hover,
+    input:-webkit-autofill:focus,
+    input:-webkit-autofill:active {
+        -webkit-box-shadow: 0 0 0 1000px white inset !important;
+        -webkit-text-fill-color: #000000 !important;
+        background-color: white !important;
+        color: #000000 !important;
+        transition: background-color 5000s ease-in-out 0s;
+    }
+
+    /* Firefox autofill override */
+    input:-moz-autofill,
+    input:-moz-autofill:focus {
+        background-color: white !important;
+        color: #000000 !important;
+        box-shadow: 0 0 0 1000px white inset !important;
+    }
+
+    /* Thin scrollbar */
+    .scrollbar-thin {
+        scrollbar-width: thin; /* Firefox */
+    }
+
+    .scrollbar-thin::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+
+    .scrollbar-thumb::-webkit-scrollbar-thumb {
+        background-color: #888;
+        border-radius: 9999px;
+    }
+
+    .scrollbar-track::-webkit-scrollbar-track {
+        background-color: #f1f1f1;
+    }
+
+    /* Ultra-thin scrollbar */
+    .scrollbar-ultra-thin {
+        scrollbar-width: none; /* Firefox: hides scrollbar */
+    }
+
+    .scrollbar-ultra-thin::-webkit-scrollbar {
+        width: 2px;
+        height: 2px;
+    }
+
+    .scrollbar-ultra-thin::-webkit-scrollbar-thumb {
+        background-color: #aaa;
+        border-radius: 9999px;
+    }
+
+    .scrollbar-ultra-thin::-webkit-scrollbar-track {
+        background-color: transparent;
+    }
+}
