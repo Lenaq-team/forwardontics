@@ -10,8 +10,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "GoPex",
-  description: "GoPex",
+  title: "GOPex",
+  description: "GOPex",
 };
 
 export default function RootLayout({
