@@ -1,7 +1,7 @@
 "use client";
 
-import { Fragment, useState, useEffect } from "react";
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
+import { Fragment, useState, useEffect, useRef } from "react";
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Loader2 } from "lucide-react";
 import {
     Table,
     TableBody,
@@ -11,6 +11,7 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
     Select,
@@ -24,7 +25,217 @@ import ReviewerPatientsTable from "./ReviewerPatientsCell";
 
 const PAGE_SIZE_OPTIONS = [10, 20, 30, 40, 50];
 
-const ReviewersTable = ({ data }: { data: AdminReviewer[] }) => {
+interface EditableCellProps {
+    reviewer: AdminReviewer;
+    onSaved: () => void;
+}
+
+function NameCell({ reviewer, onSaved }: EditableCellProps) {
+    const currentName = reviewer.fullname || reviewer.email || "—";
+    const [editing, setEditing] = useState(false);
+    const [value, setValue] = useState(reviewer.fullname);
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        if (editing) {
+            inputRef.current?.focus();
+            inputRef.current?.select();
+        }
+    }, [editing]);
+
+    const save = async () => {
+        const trimmed = value.trim();
+        if (!trimmed) {
+            setError("Name cannot be empty");
+            return;
+        }
+        if (trimmed === reviewer.fullname) {
+            setEditing(false);
+            setError(null);
+            return;
+        }
+        setSaving(true);
+        setError(null);
+        try {
+            const res = await fetch(`/api/admin/reviewers/${reviewer.id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ fullname: trimmed }),
+            });
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error ?? "Failed to save");
+            }
+            setEditing(false);
+            onSaved();
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Failed to save");
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const cancel = () => {
+        setValue(reviewer.fullname);
+        setEditing(false);
+        setError(null);
+    };
+
+    if (!editing) {
+        return (
+            <button
+                className="w-full text-left font-medium hover:underline hover:text-primary cursor-pointer rounded px-1"
+                title="Click to edit name"
+                onClick={(e) => {
+                    e.stopPropagation();
+                    setValue(reviewer.fullname);
+                    setEditing(true);
+                }}
+            >
+                {currentName}
+            </button>
+        );
+    }
+
+    return (
+        <div
+            className="flex flex-col gap-1"
+            onClick={(e) => e.stopPropagation()}
+        >
+            <div className="flex items-center gap-1">
+                <Input
+                    ref={inputRef}
+                    type="text"
+                    value={value}
+                    onChange={(e) => setValue(e.target.value)}
+                    onKeyDown={(e) => {
+                        if (e.key === "Enter") save();
+                        if (e.key === "Escape") cancel();
+                    }}
+                    onBlur={save}
+                    className="h-7 text-sm min-w-[140px]"
+                    disabled={saving}
+                />
+                {saving && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground shrink-0" />}
+            </div>
+            {error && (
+                <span className="text-xs text-red-500">{error}</span>
+            )}
+        </div>
+    );
+}
+
+interface MaxCapacityCellProps {
+    reviewer: AdminReviewer;
+    onSaved: () => void;
+}
+
+function MaxCapacityCell({ reviewer, onSaved }: MaxCapacityCellProps) {
+    const [editing, setEditing] = useState(false);
+    const [value, setValue] = useState(String(reviewer.maxPatientCapacity));
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        if (editing) {
+            inputRef.current?.focus();
+            inputRef.current?.select();
+        }
+    }, [editing]);
+
+    const save = async () => {
+        const parsed = parseInt(value, 10);
+        if (isNaN(parsed) || parsed < 0) {
+            setError("Must be a non-negative integer");
+            return;
+        }
+        if (parsed === reviewer.maxPatientCapacity) {
+            setEditing(false);
+            setError(null);
+            return;
+        }
+        setSaving(true);
+        setError(null);
+        try {
+            const res = await fetch(`/api/admin/reviewers/${reviewer.id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ maxPatientCapacity: parsed }),
+            });
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error ?? "Failed to save");
+            }
+            setEditing(false);
+            onSaved();
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Failed to save");
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const cancel = () => {
+        setValue(String(reviewer.maxPatientCapacity));
+        setEditing(false);
+        setError(null);
+    };
+
+    if (!editing) {
+        return (
+            <button
+                className="w-full tabular-nums text-center hover:underline hover:text-primary cursor-pointer rounded px-1"
+                title="Click to edit max capacity"
+                onClick={(e) => {
+                    e.stopPropagation();
+                    setValue(String(reviewer.maxPatientCapacity));
+                    setEditing(true);
+                }}
+            >
+                {reviewer.maxPatientCapacity}
+            </button>
+        );
+    }
+
+    return (
+        <div
+            className="flex flex-col items-center gap-1"
+            onClick={(e) => e.stopPropagation()}
+        >
+            <div className="flex items-center gap-1">
+                <Input
+                    ref={inputRef}
+                    type="number"
+                    min={0}
+                    value={value}
+                    onChange={(e) => setValue(e.target.value)}
+                    onKeyDown={(e) => {
+                        if (e.key === "Enter") save();
+                        if (e.key === "Escape") cancel();
+                    }}
+                    onBlur={save}
+                    className="w-20 h-7 text-center text-sm"
+                    disabled={saving}
+                />
+                {saving && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+            </div>
+            {error && (
+                <span className="text-xs text-red-500">{error}</span>
+            )}
+        </div>
+    );
+}
+
+const ReviewersTable = ({
+    data,
+    onCapacityUpdated,
+}: {
+    data: AdminReviewer[];
+    onCapacityUpdated?: () => void;
+}) => {
     const [expandedId, setExpandedId] = useState<string | null>(null);
     const [pageIndex, setPageIndex] = useState(0);
     const [pageSize, setPageSize] = useState(10);
@@ -85,7 +296,10 @@ const ReviewersTable = ({ data }: { data: AdminReviewer[] }) => {
                                         </Button>
                                     </TableCell>
                                     <TableCell className="font-medium">
-                                        {reviewer.fullname || reviewer.email || "—"}
+                                        <NameCell
+                                            reviewer={reviewer}
+                                            onSaved={onCapacityUpdated ?? (() => {})}
+                                        />
                                     </TableCell>
                                     <TableCell>{reviewer.email || "—"}</TableCell>
                                     <TableCell className="text-center tabular-nums">
@@ -97,8 +311,11 @@ const ReviewersTable = ({ data }: { data: AdminReviewer[] }) => {
                                     <TableCell className="text-center tabular-nums text-emerald-600 dark:text-emerald-400">
                                         {reviewer.completedReviews}
                                     </TableCell>
-                                    <TableCell className="text-center tabular-nums">
-                                        {reviewer.maxPatientCapacity}
+                                    <TableCell className="text-center">
+                                        <MaxCapacityCell
+                                            reviewer={reviewer}
+                                            onSaved={onCapacityUpdated ?? (() => {})}
+                                        />
                                     </TableCell>
                                     <TableCell className="text-center text-muted-foreground">
                                         {reviewer.membershipExpiresAt

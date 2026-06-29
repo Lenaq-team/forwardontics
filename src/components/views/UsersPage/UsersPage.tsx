@@ -150,7 +150,7 @@ const AdminPage = () => {
                         No reviewers found.
                     </p>
                 ) : (
-                    <ReviewersTable data={reviewers} />
+                    <ReviewersTable data={reviewers} onCapacityUpdated={mutate} />
                 )}
             </div>
         </div>
