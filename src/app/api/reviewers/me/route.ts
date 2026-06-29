@@ -207,7 +207,6 @@ export async function PATCH(req: NextRequest) {
       fullname,
       email,
       phone,
-      maxPatientCapacity,
     } = body;
 
     await ensureReviewersTable();
@@ -231,15 +230,6 @@ export async function PATCH(req: NextRequest) {
       updates.push(`phone = $${paramIndex++}`);
       values.push(phone === null ? null : String(phone));
     }
-    if (maxPatientCapacity !== undefined) {
-      updates.push(`max_patient_capacity = $${paramIndex++}`);
-      values.push(
-        typeof maxPatientCapacity === "number"
-          ? maxPatientCapacity
-          : parseInt(String(maxPatientCapacity), 10) || 0
-      );
-    }
-
     const isAdmin = groups.includes("Admin");
     if (updates.length > 0) {
       // Never add Admin to the reviewers table
