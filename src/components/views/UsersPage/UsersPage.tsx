@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Home, UserPlus } from "lucide-react";
+import { Home, UserPlus, Search } from "lucide-react";
 import ReviewersTable from "@/components/organisms/ReviewersTable/ReviewersTable";
 import {
     Breadcrumb,
@@ -12,6 +12,7 @@ import {
     BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { CreateReviewerDialog } from "@/components/CreateReviewerDialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -23,10 +24,18 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { useAdminReviewers } from "@/hooks/useData";
+import type { AdminReviewer } from "@/hooks/useData";
 
 const AdminPage = () => {
     const { reviewers, isLoading, isError, mutate } = useAdminReviewers();
     const [createReviewerOpen, setCreateReviewerOpen] = useState(false);
+    const [emailSearch, setEmailSearch] = useState("");
+
+    const filteredReviewers = emailSearch.trim()
+        ? reviewers.filter((r: AdminReviewer) =>
+              r.email.toLowerCase().includes(emailSearch.trim().toLowerCase())
+          )
+        : reviewers;
 
     // Show error state if data fetching failed
     if (isError) {
@@ -76,6 +85,15 @@ const AdminPage = () => {
                         <UserPlus className="h-4 w-4 mr-2" />
                         Create reviewer
                     </Button>
+                </div>
+                <div className="relative max-w-sm mb-4">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        className="pl-9"
+                        placeholder="Search by reviewer email…"
+                        value={emailSearch}
+                        onChange={(e) => setEmailSearch(e.target.value)}
+                    />
                 </div>
                 <CreateReviewerDialog
                     open={createReviewerOpen}
@@ -145,12 +163,14 @@ const AdminPage = () => {
                             </Table>
                         </div>
                     </div>
-                ) : reviewers.length === 0 ? (
+                ) : filteredReviewers.length === 0 ? (
                     <p className="text-center text-muted-foreground py-12">
-                        No reviewers found.
+                        {emailSearch.trim()
+                            ? "No reviewers match that email."
+                            : "No reviewers found."}
                     </p>
                 ) : (
-                    <ReviewersTable data={reviewers} onCapacityUpdated={mutate} />
+                    <ReviewersTable data={filteredReviewers} onCapacityUpdated={mutate} />
                 )}
             </div>
         </div>
