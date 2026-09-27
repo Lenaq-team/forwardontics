@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useState, useEffect, useRef } from "react";
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Loader2, MoreVertical, KeyRound, Key, Copy, Check } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Loader2, MoreVertical, KeyRound, Key, Copy, Check, Ban, CheckCircle2, CalendarPlus } from "lucide-react";
 import {
     Table,
     TableBody,
@@ -24,6 +24,7 @@ import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
+    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -38,7 +39,7 @@ import { toast } from "sonner";
 import type { AdminReviewer } from "@/hooks";
 import ReviewerPatientsTable from "./ReviewerPatientsCell";
 
-type ReviewerActionType = "reset-email" | "reset-temp";
+type ReviewerActionType = "disable" | "enable" | "extend" | "reset-email" | "reset-temp";
 
 function CopyButton({ text }: { text: string }) {
     const [copied, setCopied] = useState(false);
@@ -59,12 +60,18 @@ function CopyButton({ text }: { text: string }) {
     );
 }
 
-function ReviewerRowActions({ reviewer }: { reviewer: AdminReviewer }) {
+function ReviewerRowActions({ reviewer, onSaved }: { reviewer: AdminReviewer; onSaved: () => void }) {
     const [actionModal, setActionModal] = useState<ReviewerActionType | null>(null);
+    const [days, setDays] = useState("30");
     const [submitting, setSubmitting] = useState(false);
     const [tempPassword, setTempPassword] = useState<string | null>(null);
 
+    const isActive = reviewer.membershipExpiresAt
+        ? new Date(reviewer.membershipExpiresAt).getTime() > Date.now()
+        : false;
+
     function openAction(type: ReviewerActionType) {
+        setDays("30");
         setTempPassword(null);
         setActionModal(type);
     }
@@ -96,7 +103,7 @@ function ReviewerRowActions({ reviewer }: { reviewer: AdminReviewer }) {
                     throw new Error(b.error ?? `Request failed (${res.status})`);
                 }
                 toast.success(`Reset email sent to ${reviewer.email}.`);
-            } else {
+            } else if (actionModal === "reset-temp") {
                 const res = await fetch(`/api/admin/reviewers/${reviewer.id}/reset-password`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -108,6 +115,31 @@ function ReviewerRowActions({ reviewer }: { reviewer: AdminReviewer }) {
                 }
                 const data: { temporaryPassword?: string } = await res.json();
                 setTempPassword(data.temporaryPassword ?? null);
+            } else {
+                // disable / enable / extend
+                const payload: { action: string; days?: number } = { action: actionModal };
+                if (actionModal === "enable" || actionModal === "extend") payload.days = parseInt(days, 10);
+                setActionModal(null);
+                const res = await fetch(`/api/admin/reviewers/${reviewer.id}`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload),
+                });
+                if (!res.ok) {
+                    const b = await res.json().catch(() => ({}));
+                    throw new Error(b.error ?? `Request failed (${res.status})`);
+                }
+                const data: { membershipExpiresAt?: string } = await res.json();
+                onSaved();
+                const name = reviewer.fullname || reviewer.email || "Reviewer";
+                if (actionModal === "disable") toast.success(`${name} has been disabled.`);
+                else if (actionModal === "enable") {
+                    const exp = data.membershipExpiresAt ? new Date(data.membershipExpiresAt).toLocaleDateString() : "";
+                    toast.success(`${name} enabled until ${exp}.`);
+                } else {
+                    const exp = data.membershipExpiresAt ? new Date(data.membershipExpiresAt).toLocaleDateString() : "";
+                    toast.success(`Membership extended. New expiry: ${exp}.`);
+                }
             }
         } catch (err) {
             toast.error(err instanceof Error ? err.message : "Action failed.");
@@ -118,6 +150,29 @@ function ReviewerRowActions({ reviewer }: { reviewer: AdminReviewer }) {
     }
 
     const isResetTemp = actionModal === "reset-temp";
+    const isMembershipAction = actionModal === "disable" || actionModal === "enable" || actionModal === "extend";
+    const showDaysInput = actionModal === "enable" || actionModal === "extend";
+
+    const membershipDialogTitle = actionModal === "disable"
+        ? "Disable reviewer"
+        : actionModal === "enable"
+            ? "Enable reviewer"
+            : "Extend membership";
+
+    const reviewerName = reviewer.fullname || reviewer.email || "this reviewer";
+
+    const membershipDialogDescription = actionModal === "disable"
+        ? `Disable ${reviewerName}? Their membership will be revoked immediately.`
+        : actionModal === "enable"
+            ? `How many days should ${reviewerName}'s membership be active?`
+            : `How many days do you want to add to ${reviewerName}'s membership?`;
+
+    const membershipConfirmLabel = actionModal === "disable" ? "Disable" : actionModal === "enable" ? "Enable" : "Extend";
+    const membershipConfirmClass = actionModal === "disable"
+        ? "bg-destructive text-white hover:bg-destructive/90"
+        : actionModal === "enable"
+            ? "bg-emerald-600 text-white hover:bg-emerald-600/90"
+            : "bg-accent text-white hover:bg-accent/90";
 
     return (
         <>
@@ -132,6 +187,28 @@ function ReviewerRowActions({ reviewer }: { reviewer: AdminReviewer }) {
                     </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-52" onClick={(e) => e.stopPropagation()}>
+                    {isActive ? (
+                        <DropdownMenuItem
+                            className="text-destructive focus:text-destructive gap-2"
+                            onSelect={() => openAction("disable")}
+                        >
+                            <Ban className="h-4 w-4" />
+                            Disable
+                        </DropdownMenuItem>
+                    ) : (
+                        <DropdownMenuItem
+                            className="text-emerald-600 focus:text-emerald-600 gap-2"
+                            onSelect={() => openAction("enable")}
+                        >
+                            <CheckCircle2 className="h-4 w-4" />
+                            Enable
+                        </DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem className="gap-2" onSelect={() => openAction("extend")}>
+                        <CalendarPlus className="h-4 w-4" />
+                        Extend membership
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
                     <DropdownMenuItem className="gap-2" onSelect={() => openAction("reset-email")}>
                         <KeyRound className="h-4 w-4" />
                         Send reset email
@@ -147,18 +224,36 @@ function ReviewerRowActions({ reviewer }: { reviewer: AdminReviewer }) {
                 <DialogContent showCloseButton={false} onClick={(e) => e.stopPropagation()}>
                     <DialogHeader>
                         <DialogTitle>
-                            {isResetTemp
-                                ? tempPassword ? "Temporary password set" : "Set temporary password"
-                                : "Send password reset email"}
+                            {isMembershipAction
+                                ? membershipDialogTitle
+                                : isResetTemp
+                                    ? tempPassword ? "Temporary password set" : "Set temporary password"
+                                    : "Send password reset email"}
                         </DialogTitle>
                         <DialogDescription>
-                            {isResetTemp
-                                ? tempPassword
-                                    ? `Share this temporary password with ${reviewer.fullname || reviewer.email}. They will be required to change it on next login.`
-                                    : `Generate and set a temporary password for ${reviewer.fullname || reviewer.email}? They will be required to change it on next login.`
-                                : `Send a password reset email to ${reviewer.email}? Cognito will email them a verification code to set a new password.`}
+                            {isMembershipAction
+                                ? membershipDialogDescription
+                                : isResetTemp
+                                    ? tempPassword
+                                        ? `Share this temporary password with ${reviewer.fullname || reviewer.email}. They will be required to change it on next login.`
+                                        : `Generate and set a temporary password for ${reviewer.fullname || reviewer.email}? They will be required to change it on next login.`
+                                    : `Send a password reset email to ${reviewer.email}? Cognito will email them a verification code to set a new password.`}
                         </DialogDescription>
                     </DialogHeader>
+
+                    {showDaysInput && (
+                        <div className="flex items-center gap-3">
+                            <Input
+                                type="number"
+                                min={1}
+                                max={3650}
+                                value={days}
+                                onChange={(e) => setDays(e.target.value)}
+                                className="w-28"
+                            />
+                            <span className="text-sm text-muted-foreground">days</span>
+                        </div>
+                    )}
 
                     {isResetTemp && tempPassword && (
                         <div className="flex items-center gap-2 rounded-md border bg-neutral-50 px-3 py-2 dark:bg-neutral-900">
@@ -174,15 +269,17 @@ function ReviewerRowActions({ reviewer }: { reviewer: AdminReviewer }) {
                             </Button>
                         )}
                         <Button
-                            className="bg-accent text-white hover:bg-accent/90"
+                            className={isMembershipAction ? membershipConfirmClass : "bg-accent text-white hover:bg-accent/90"}
                             onClick={handleAction}
                             disabled={submitting}
                         >
                             {submitting
                                 ? <Loader2 className="h-4 w-4 animate-spin" />
-                                : isResetTemp
-                                    ? tempPassword ? "Close" : "Generate & set"
-                                    : "Send email"}
+                                : isMembershipAction
+                                    ? membershipConfirmLabel
+                                    : isResetTemp
+                                        ? tempPassword ? "Close" : "Generate & set"
+                                        : "Send email"}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -496,7 +593,10 @@ const ReviewersTable = ({
                                             : "—"}
                                     </TableCell>
                                     <TableCell className="text-right pr-2" onClick={(e) => e.stopPropagation()}>
-                                        <ReviewerRowActions reviewer={reviewer} />
+                                        <ReviewerRowActions
+                                            reviewer={reviewer}
+                                            onSaved={onCapacityUpdated ?? (() => {})}
+                                        />
                                     </TableCell>
                                 </TableRow>
                                 {isExpanded && (
