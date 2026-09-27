@@ -1,10 +1,13 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { DeleteObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { verifyIdToken } from "@/lib/auth/verifyToken";
 import { ensureVideoUploadsTable } from "@/lib/db/videos";
 import { ensurePatientsTable } from "@/lib/db/patients";
+import { ensureReviewersTable } from "@/lib/db/reviewers";
 import { getPgPool } from "@/lib/db/pool";
 import { getDatePartsInTimezone } from "@/lib/utils/dateInTimezone";
+import { exercises } from "@/lib/data/exercises";
+import { sendVideoUploadNotification } from "@/lib/email/reviewerNotifications";
 import { randomUUID } from "crypto";
 
 function safeRequestId(): string {
@@ -107,16 +110,20 @@ export async function POST(request: NextRequest) {
 
     // Use patient's timezone for S3 folder so it matches their calendar day
     let timezone = "UTC";
+    let patientFullName: string | null = null;
+    let assignedDoctorId: string | null = null;
     try {
       await ensurePatientsTable();
       const pool = getPgPool();
-      const row = await pool.query<{ timezone: string }>(
-        `SELECT timezone FROM patients WHERE cognito_sub = $1`,
+      const row = await pool.query<{ timezone: string; full_name: string | null; assigned_doctor: string | null }>(
+        `SELECT timezone, full_name, assigned_doctor FROM patients WHERE cognito_sub = $1`,
         [user.sub]
       );
       if (row.rows[0]?.timezone) {
         timezone = row.rows[0].timezone;
       }
+      patientFullName = row.rows[0]?.full_name ?? null;
+      assignedDoctorId = row.rows[0]?.assigned_doctor ?? null;
     } catch {
       // fallback to UTC
     }
@@ -266,6 +273,36 @@ export async function POST(request: NextRequest) {
       id,
       durationMs: Date.now() - startedAt,
     });
+
+    // Notify the assigned reviewer by email after the response is sent, so a slow/failed
+    // email never delays or breaks the upload itself.
+    if (assignedDoctorId) {
+      after(async () => {
+        try {
+          await ensureReviewersTable();
+          const reviewerRow = await pool.query<{ email: string | null; fullname: string | null }>(
+            `SELECT email, fullname FROM reviewers WHERE id::text = $1`,
+            [assignedDoctorId]
+          );
+          const reviewer = reviewerRow.rows[0];
+          if (reviewer?.email) {
+            const exerciseName = exercises.find((e) => e.id === exerciseIdNum)?.name ?? null;
+            await sendVideoUploadNotification({
+              reviewerEmail: reviewer.email,
+              reviewerName: reviewer.fullname,
+              patientName: patientFullName,
+              exerciseName,
+            });
+          }
+        } catch (err) {
+          console.error("upload-video:reviewer_notification_failed", {
+            ...common,
+            id,
+            message: err instanceof Error ? err.message : String(err),
+          });
+        }
+      });
+    }
 
     return NextResponse.json(
       { success: true, id, bucket, key, stage, createdAt: now.toISOString(), requestId },
