@@ -1,5 +1,8 @@
 import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
 
+// SES_FROM_EMAIL must be an identity verified in SES (support@forwardontics.com).
+// The forwardontics.com domain identity is also verified for DKIM signing.
+
 const sesClient = new SESClient({
     region: process.env.AWS_REGION || "us-east-1",
     credentials: {
